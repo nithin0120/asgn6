@@ -1,0 +1,260 @@
+Since copy/paste from a PDF may be difficult, this file contains snippets
+of text from asgn6.pdf.
+
+============================================
+Section 2.2 Reading and Writing Binary Files
+============================================
+
+    /* Example C code for opening a binary file for reading. */
+
+    FILE *fin = fopen(filename, "rb");  // Use "rb" to open a binary file for reading.
+    if (fin == NULL) {
+        /* can't open the input file; report a fatal error */
+
+--------------------------------------------
+
+    /* Example C code for opening a binary file for writing. */
+
+    FILE *fout = fopen(filename, "wb");  // Use "wb" to open a binary file for writing.
+    if (fout == NULL) {
+        /* can't open the output file; report a fatal error */
+
+--------------------------------------------
+
+    /* Example of code for reading a binary file. */
+
+    FILE *fin = fopen("filename", "rb");
+    if (fin == NULL) {
+        /* TODO:  report fatal error */
+    }
+
+    while (1) {
+        int ch = fgetc(fin);  // ch is an int because the value might be 0--255 or EOF
+        if (ch == EOF) break;
+        /* 0 <= ch <= 255 */
+        /* TODO:  do something with ch. */
+    }
+
+    if (fclose(fin) == EOF) {
+        /* TODO:  report fatal error */
+    }
+
+--------------------------------------------
+
+    /* Example of code for writing uint8_t buffer[] to a binary file. */
+
+    FILE *fout = fopen("filename", "wb");
+    if (fout == NULL) {
+        /* TODO:  report fatal error */
+    }
+
+    for (int i = 0; i < file_size; ++i) {
+        int result = fputc(buffer[i], fout);
+        if (result == EOF) {
+            /* TODO:  report fatal error */
+        }
+    }
+
+    if (fclose(fout) == EOF) {
+        /* TODO:  report fatal error */
+    }
+
+=====================
+Section 3.1 Functions
+=====================
+
+def read_uint8(fin, uint8_t *px):
+    int result = fgetc(fin);
+    if result == EOF:
+        /* report a fatal error */
+    *px = (uint8_t) result;
+
+---------------------
+
+def write_uint8(fout, uint8_t x):
+    int result = fputc(x, fout);
+    if result == EOF:
+        /* report a fatal error */
+
+
+=================================================
+Section 4 Reading/Writing Windows BMP Image Files
+=================================================
+
+    #define MAX_COLORS 256
+
+    typedef struct color {
+        uint8_t red;
+        uint8_t green;
+        uint8_t blue;
+    } Color;
+
+    typedef struct bmp {
+        uint32_t    height;
+        uint32_t    width;
+        Color       palette[MAX_COLORS];
+        uint8_t   **a;
+    } BMP;
+
+=====================
+Section 4.1 Functions
+=====================
+
+def round_up(x, n):
+    while x % n != 0:
+        x = x + 1
+    return x
+
+---------------------
+
+def bmp_create(fin):
+    BMP *pbmp = calloc(1, sizeof(BMP));
+    report fatal error if pbmp == NULL
+
+    // read data from the input file
+    read uint8 type1
+    read uint8 type2
+
+    skip uint32 (that is, read a uint32 into a variable, but you won't use the value)
+    skip uint16
+    skip uint16
+    skip uint32
+
+    read uint32 bitmap_header_size
+    read uint32 pbmp->width
+    read uint32 pbmp->height
+
+    skip uint16
+
+    read uint16 bits_per_pixel
+    read uint32 compression
+
+    skip uint32
+    skip uint32
+    skip uint32
+
+    read uint32 colors_used
+
+    skip uint32
+
+    verify type1 == 'B'
+    verify type2 == 'M'
+    verify bitmap_header_size == 40
+    verify bits_per_pixel == 8
+    verify compression == 0
+    uint32_t num_colors = colors_used
+    if (num_colors == 0) num_colors = (1 << bits_per_pixel)
+    for i in range(0, num_colors):
+        // read bytes from the input file
+        read uint8 pbmp->pallete[i].blue
+        read uint8 pbmp->pallete[i].green
+        read uint8 pbmp->pallete[i].red
+        skip uint8
+
+    // Each row must have a multiple of 4 pixels.  Round up to next multiple of 4.
+    uint32_t rounded_width = round_up(pbmp->width, 4)
+
+    // Allocate pixel array
+    pbmp->a = calloc(width, sizeof(pbmp->a[0]));
+    for x in range(0, width):
+        pbmp->a[x] = calloc(pbmp->height, sizeof(pbmp->a[x][0]));
+
+    // read pixels
+    for y in range(0, pbmp->height):
+        for x in range(0, pbmp->width):
+            read uint8 pbmp->a[x][y]
+
+        // skip any extra pixels per row
+        for x in range(pbmp->width, rounded_width):
+            skip uint8
+
+    return pbmp;
+
+---------------------
+
+def bmp_write(pbmp, fout):
+    uint32_t rounded_width = round_up(pbmp->width, 4)
+    uint32_t image_size = height * rounded_width;
+    uint32_t file_header_size = 14
+    uint32_t bitmap_header_size = 40
+    uint32_t num_colors = MAX_COLORS
+    uint32_t palette_size = 4 * num_colors
+    uint32_t bitmap_offset = file_header_size + bitmap_header_size + palette_size
+    uint32_t file_size = bitmap_offset + image_size
+
+    // write data to output file
+    write uint8 'B'
+    write uint8 'M'
+    write uint32 file_size
+    write uint16 0
+    write uint16 0
+    write uint32 bitmap_offset
+    write uint32 bitmap_header_size
+    write uint32 pbmp->width
+    write uint32 pbmp->height
+    write uint16 1
+    write uint16 8
+    write uint32 0
+    write uint32 image_size
+    write uint32 2835
+    write uint32 2835
+    write uint32 num_colors
+    write uint32 num_colors
+
+    // write the palette
+    for i in range(0, num_colors):
+        write uint8 pbmp->palette[i].blue
+        write uint8 pbmp->palette[i].green
+        write uint8 pbmp->palette[i].red
+        write uint8 0
+
+    // write the pixels
+    for y in range(0, pbmp->height):
+        for x in range(0, pbmp->width):
+            write uint8 pbmp->a[x][y]
+
+        // if needed, write extra pixels to make a multiple of 4 pixels per row
+        for x in range(pbmp->width, rounded_width):
+            write uint8 0
+
+---------------------
+
+    for i in range(0, (*ppbmp)->width):
+        free((*ppbmp)->a[i]);
+    free((*ppbmp)->a);
+    free(*ppbmp);
+    *ppbmp = NULL;
+
+---------------------
+
+def constrain(x):
+    x = round(x)
+    if x < 0:
+        x = 0
+    if x > UINT8_MAX:
+        x = UINT8_MAX
+    return (uint8_t) x
+
+---------------------
+
+def bmp_reduce_palette(pbmp):
+    for i in range(0, MAX_COLORS):
+        r = pbmp->palette[i].red;
+        g = pbmp->palette[i].green;
+        b = pbmp->palette[i].blue;
+
+        SqLe = 0.00999  * r + 0.0664739 * g + 0.7317   * b
+        SeLq = 0.153384 * r + 0.316624  * g + 0.057134 * b
+
+        if SqLe < SeLq:
+            r_new = constrain( 0.426331  * r + 0.875102  * g +  0.0801271 * b)
+            g_new = constrain( 0.281100  * r + 0.571195  * g + -0.0392627 * b)
+            b_new = constrain(-0.0177052 * r + 0.0270084 * g +  1.00247   * b)
+        else:
+            r_new = constrain( 0.758100   * r + 1.45387   * g + -1.48060  * b)
+            g_new = constrain( 0.118532   * r + 0.287595  * g +  0.725501 * b)
+            b_new = constrain(-0.00746579 * r + 0.0448711 * g +  0.954303 * b)
+
+        pbmp->palette[i].red   = r_new;
+        pbmp->palette[i].green = g_new;
+        pbmp->palette[i].blue  = b_new;
