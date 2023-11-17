@@ -22,7 +22,7 @@ void read_uint16(FILE *fin, uint16_t *px) {
     read_uint8(fin, &byte1); 
     read_uint8(fin, &byte2); 
 
-    *px = ((uint16_t)byte2 << 8) | byte1; // 
+    *px = (uint16_t)(((uint16_t)byte2 << 8) | byte1); 
 }
 
 void read_uint32(FILE *fin, uint32_t *px) {

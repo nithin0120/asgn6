@@ -14,17 +14,17 @@
 
 uint8_t type1;
 uint8_t type2;
-uint32_t noUse1;
-uint32_t noUse2;
-uint32_t noUse3;
-uint32_t noUse4;
-uint32_t noUse5;
-uint32_t noUse6;
-uint16_t noUse1;
-uint16_t noUse2;
-uint16_t noUse3;
-uint8_t noUse1;
-uint8_t noUse2;
+uint32_t a;
+uint32_t b;
+uint32_t c;
+uint32_t d;
+uint32_t e;
+uint32_t f;
+uint16_t g;
+uint16_t h;
+uint16_t i;
+uint8_t j;
+uint8_t k;
 uint32_t bitmap_header_size;
 uint16_t bits_per_pixel;
 uint32_t compression;
@@ -57,30 +57,30 @@ BMP *bmp_create(FILE *fin){
         exit(EXIT_FAILURE);
     }
 
-    read_uint8(fin, type1);   
-    read_uint8(fin, type2);
+    read_uint8(fin, &type1);   
+    read_uint8(fin, &type2);
 
-    read_uint32(fin, noUse1);
-    read_uint16(fin, noUse1);
-    read_uint16(fin, noUse2);
-    read_uint32(fin, noUse2);
+    read_uint32(fin, &a);
+    read_uint16(fin, &g);
+    read_uint16(fin, &h);
+    read_uint32(fin, &b);
 
-    read_uint32(fin, bitmap_header_size);
-    read_uint32(fin, pbmp -> width);
-    read_uint32(fin, pbmp -> height);
+    read_uint32(fin, &bitmap_header_size);
+    read_uint32(fin, &pbmp -> width);
+    read_uint32(fin, &pbmp -> height);
 
-    read_uint16(fin, noUse3);
+    read_uint16(fin, &i);
 
-    read_uint16(fin, bits_per_pixel);
-    read_uint16(fin, compression);
+    read_uint16(fin, &bits_per_pixel);
+    read_uint32(fin, &compression);
 
-    read_uint32(fin, noUse3);
-    read_uint32(fin, noUse4);
-    read_uint32(fin, noUse5);
+    read_uint32(fin, &c);
+    read_uint32(fin, &d);
+    read_uint32(fin, &e);
 
-    read_uint32(fin, colors_used);
+    read_uint32(fin, &colors_used);
 
-    read_uint32(fin, noUse6);
+    read_uint32(fin, &f);
 
     if((type1 != 'B') || (type2 != 'M') || (bitmap_header_size != 40) || (bits_per_pixel != 8) || (compression != 0)){
         fprintf(stderr, "Invalid BMP file format.\n");
@@ -93,10 +93,10 @@ BMP *bmp_create(FILE *fin){
     }
 
     for(uint32_t i  = 0; i < num_colors; i++){
-        read_uint8(fin, pbmp -> palette[i].blue);
-        read_uint8(fin, pbmp -> palette[i].green);
-        read_uint8(fin, pbmp -> palette[i].red);
-        read_uint8(fin, noUse1);
+        read_uint8(fin, &pbmp -> palette[i].blue);
+        read_uint8(fin, &pbmp -> palette[i].green);
+        read_uint8(fin, &pbmp -> palette[i].red);
+        read_uint8(fin, &j);
     }
 
     uint32_t rounded_width = round_up(pbmp -> width, 4);
@@ -108,11 +108,11 @@ BMP *bmp_create(FILE *fin){
 
     for(uint32_t y = 0; y < pbmp -> height; y++){
         for(uint32_t x = 0; x < pbmp -> width; x++){
-            read_uint8(fin, pbmp -> a[x][y]);
+            read_uint8(fin, &pbmp -> a[x][y]);
         }
 
         for(uint32_t x = pbmp -> width; x < rounded_width; x++){
-            read_uint8(fin, noUse2);
+            read_uint8(fin, &k);
         }
     }
 
@@ -175,7 +175,7 @@ void bmp_free(BMP **ppbmp){
 }
 
 uint8_t constrain(double x) {
-    int x = (int)round(x); 
+    x = round(x); 
     
     if (x < 0) {
         x = 0;
@@ -197,8 +197,8 @@ void bmp_reduce_palette(BMP *pbmp){
         uint8_t g_new = 0;
         uint8_t b_new = 0;
 
-        uint8_t SqLe = 0.00999 * r + 0.0664739 * g + 0.7317 * b;
-        uint8_t SeLq = 0.153384 * r + 0.316624 * g + 0.057134 * b;
+        uint8_t SqLe = (uint8_t)(0.00999 * r + 0.0664739 * g + 0.7317 * b);
+        uint8_t SeLq = (uint8_t)(0.153384 * r + 0.316624 * g + 0.057134 * b);
 
         if(SqLe < SeLq){
             r_new = constrain(0.426331 * r + 0.857102 * g + 0.0801271 * b);
